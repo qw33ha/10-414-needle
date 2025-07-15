@@ -20,7 +20,7 @@ def add(x, y):
         Sum of x + y
     """
     ### BEGIN YOUR CODE
-    pass
+    return x + y
     ### END YOUR CODE
 
 
@@ -48,7 +48,23 @@ def parse_mnist(image_filename, label_filename):
                 for MNIST will contain the values 0-9.
     """
     ### BEGIN YOUR CODE
-    pass
+    X = []
+    with gzip.open(image_filename) as f:
+        data_header_format = '>iiii'
+        data_format = '>784s'
+        f.read(struct.calcsize(data_header_format))
+        while True:
+            img = f.read(struct.calcsize(data_format))
+            if len(img) < struct.calcsize(data_format):
+                break
+            img_matrix = np.frombuffer(img, np.uint8)
+            X.append(img_matrix.astype(np.float32) / 255.0)
+    with gzip.open(label_filename) as f:
+        label_header_format = '>ii'
+        f.read(struct.calcsize(label_header_format))
+        labels = f.read()
+        y = np.frombuffer(labels, np.uint8)
+    return (np.array(X), y)
     ### END YOUR CODE
 
 
@@ -68,7 +84,7 @@ def softmax_loss(Z, y):
         Average softmax loss over the sample.
     """
     ### BEGIN YOUR CODE
-    pass
+    return np.mean(np.log(np.sum(np.exp(Z), axis=1)) - Z[range(Z.shape[0]), y])
     ### END YOUR CODE
 
 
@@ -91,7 +107,17 @@ def softmax_regression_epoch(X, y, theta, lr = 0.1, batch=100):
         None
     """
     ### BEGIN YOUR CODE
-    pass
+    num_examples = X.shape[0]
+    num_classes = theta.shape[1]
+    for i in range(0, num_examples, batch):
+        curr_batch = min(i+batch, num_examples) - i
+        X_batch = X[i: curr_batch + i]
+        y_batch = y[i: curr_batch + i]
+        Z = np.exp(X_batch.dot(theta)) / np.sum(np.exp(X_batch.dot(theta)), axis=1, keepdims=True)
+        I = np.zeros((curr_batch, num_classes))
+        I[range(curr_batch), y_batch] = 1
+        gradient = (X_batch.T.dot(Z - I)) / curr_batch
+        theta -= gradient * lr
     ### END YOUR CODE
 
 
@@ -118,7 +144,24 @@ def nn_epoch(X, y, W1, W2, lr = 0.1, batch=100):
         None
     """
     ### BEGIN YOUR CODE
-    pass
+    def ReLU(x):
+        return x * (x > 0)
+    num_examples = X.shape[0]
+    num_classes = W2.shape[1]
+    for i in range(0, num_examples, batch):
+        curr_batch = min(i+batch, num_examples) - i
+        X_batch = X[i: curr_batch + i]
+        y_batch = y[i: curr_batch + i]
+        Z1 = ReLU(X_batch.dot(W1))
+        normalization = np.exp(Z1.dot(W2)) / np.sum(np.exp(Z1.dot(W2)), axis=1, keepdims=True)
+        I = np.zeros((curr_batch, num_classes))
+        I[range(curr_batch), y_batch] = 1
+        G2 = normalization - I
+        G1 = (Z1 > 0) * G2.dot(W2.T)
+        gradient1 = X_batch.T.dot(G1) / curr_batch
+        gradient2 = Z1.T.dot(G2) / curr_batch
+        W1 -= gradient1 * lr
+        W2 -= gradient2 * lr
     ### END YOUR CODE
 
 
