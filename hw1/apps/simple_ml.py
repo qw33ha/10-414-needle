@@ -33,7 +33,23 @@ def parse_mnist(image_filesname, label_filename):
                 for MNIST will contain the values 0-9.
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    X = []
+    with gzip.open(image_filesname) as f:
+        data_header_format = '>iiii'
+        data_format = '>784s'
+        f.read(struct.calcsize(data_header_format))
+        while True:
+            img = f.read(struct.calcsize(data_format))
+            if len(img) < struct.calcsize(data_format):
+                break
+            img_matrix = np.frombuffer(img, np.uint8)
+            X.append(img_matrix.astype(np.float32) / 255.0)
+    with gzip.open(label_filename) as f:
+        label_header_format = '>ii'
+        f.read(struct.calcsize(label_header_format))
+        labels = f.read()
+        y = np.frombuffer(labels, np.uint8)
+    return (np.array(X), y)
     ### END YOUR SOLUTION
 
 
@@ -54,7 +70,9 @@ def softmax_loss(Z, y_one_hot):
         Average softmax loss over the sample. (ndl.Tensor[np.float32])
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    exp_sum = ndl.log(ndl.summation(ndl.exp(Z), axes=(1,)))
+    logit = ndl.summation(ndl.multiply(Z, y_one_hot), axes=(1,))
+    return ndl.summation(exp_sum - logit, axes=(0,)) / Z.shape[0]
     ### END YOUR SOLUTION
 
 
@@ -83,7 +101,23 @@ def nn_epoch(X, y, W1, W2, lr=0.1, batch=100):
     """
 
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    num_examples = X.shape[0]
+    num_classes = W2.shape[1]
+    for i in range(0, num_examples, batch):
+        curr_batch = min(i+batch, num_examples) - i
+        X_batch = ndl.Tensor(X[i: curr_batch + i])
+        y_batch = y[i: curr_batch + i]
+        y_one_hot = np.zeros((curr_batch, num_classes), dtype=np.uint8)
+        y_one_hot[np.arange(curr_batch), y_batch.reshape(-1)] = 1
+        y_one_hot = ndl.Tensor(y_one_hot)
+        logits = ndl.relu(X_batch @ W1) @ W2
+        loss = softmax_loss(logits, y_one_hot)
+        loss.backward()
+        gradient1 = W1.grad
+        gradient2 = W2.grad
+        W1 -= gradient1 * lr
+        W2 -= gradient2 * lr
+    return W1, W2
     ### END YOUR SOLUTION
 
 

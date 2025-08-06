@@ -378,9 +378,21 @@ def compute_gradient_of_variables(output_tensor, out_grad):
 
     # Traverse graph in reverse topological order given the output_node that we are taking gradient wrt.
     reverse_topo_order = list(reversed(find_topo_sort([output_tensor])))
-
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    for node in reverse_topo_order:
+        node.grad = sum_node_list(node_to_output_grads_list[node])
+        # The inputs
+        if node.is_leaf():
+            continue
+        # Format alignment: Covert to tuple
+        print(node.shape)
+        print(len(node.inputs))
+        grad_tuple = node.op.gradient_as_tuple(node.grad, node)
+        for i in range(len(node.inputs)):
+            print(node.inputs[i].shape)
+            input_node = node.inputs[i]
+            input_grad = grad_tuple[i]
+            node_to_output_grads_list[input_node] = node_to_output_grads_list.get(input_node, []) + [input_grad]
     ### END YOUR SOLUTION
 
 
